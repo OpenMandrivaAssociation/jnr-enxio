@@ -4,9 +4,9 @@
 
 Name:           jnr-enxio
 Version:        0.3
-Release:        4.0%{?dist}
+Release:        7.1
 Summary:        Unix sockets for Java
-
+Group:		Development/Java
 # src/main/java/jnr/enxio/channels/PollSelectionKey.java is LGPLv3
 # rest of the source code is ASL 2.0
 License:        ASL 2.0 and LGPLv3
@@ -50,7 +50,7 @@ find ./ -name '*.jar' -delete
 find ./ -name '*.class' -delete
 
 %build
-mvn-rpmbuild install javadoc:aggregate
+%mvn_build
 
 %install
 mkdir -p $RPM_BUILD_ROOT%{_javadir}
@@ -65,11 +65,8 @@ install -pm 644 pom.xml  \
 
 %add_maven_depmap JPP-%{name}.pom %{name}.jar
 
-%files
+%files -f .mfiles
 %doc LICENSE
-%{_mavenpomdir}/JPP-%{name}.pom
-%{_mavendepmapfragdir}/%{name}
-%{_javadir}/%{name}.jar
 
 %files javadoc
 %doc LICENSE
