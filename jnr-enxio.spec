@@ -4,7 +4,7 @@
 
 Name:           jnr-enxio
 Version:        0.3
-Release:        7.1
+Release:        7.2
 Summary:        Unix sockets for Java
 Group:		Development/Java
 # src/main/java/jnr/enxio/channels/PollSelectionKey.java is LGPLv3
