@@ -1,87 +1,53 @@
-%{?_javapackages_macros:%_javapackages_macros}
-%global commit_hash d320a2c
-%global tag_hash 8dc2020
-
-Name:           jnr-enxio
-Version:        0.3
-Release:        7.4
-Summary:        Unix sockets for Java
+Name:		jnr-enxio
+Version:	0.33.6
+Release:	1
+Summary:	Native I/O access for Java
 Group:		Development/Java
-# src/main/java/jnr/enxio/channels/PollSelectionKey.java is LGPLv3
-# rest of the source code is ASL 2.0
-License:        ASL 2.0 and LGPLv3
-URL:            https://github.com/jnr/%{name}/
-Source0:        https://github.com/jnr/%{name}/tarball/%{version}/jnr-%{name}-%{version}-0-g%{commit_hash}.tar.gz
-BuildArch:      noarch
+License:	ASL 2.0
+URL:		https://github.com/jnr/jnr-enxio
+Source0:	https://github.com/jnr/jnr-enxio/archive/refs/tags/jnr-enxio-%{version}.tar.gz
 
-BuildRequires:  java-devel
-BuildRequires:  jpackage-utils
-BuildRequires:  jnr-constants
-BuildRequires:  jnr-ffi
-
-BuildRequires:  maven-local
-BuildRequires:  maven-compiler-plugin
-BuildRequires:  maven-install-plugin
-BuildRequires:  maven-jar-plugin
-BuildRequires:  maven-javadoc-plugin
-BuildRequires:  maven-surefire-plugin
-BuildRequires:  maven-surefire-provider-junit4
-
-Requires:       java
-Requires:       jpackage-utils
-Requires:       jnr-constants
-Requires:       jnr-ffi
+BuildArch:	noarch
+BuildRequires:	python
+BuildSystem:	maven
 
 %description
-Unix sockets for Java.
-
-%package javadoc
-Summary:        Javadocs for %{name}
-
-Requires:       jpackage-utils
-
-%description javadoc
-This package contains the API documentation for %{name}.
+Native I/O access for Java, used by jnr-unixsocket.
 
 %prep
-%setup -q -n jnr-%{name}-%{tag_hash}
-
-find ./ -name '*.jar' -delete
-find ./ -name '*.class' -delete
-
-%build
-%mvn_build
-
-%install
-mkdir -p $RPM_BUILD_ROOT%{_javadir}
-cp -p target/%{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}/%{name}.jar
-
-mkdir -p $RPM_BUILD_ROOT%{_javadocdir}/%{name}
-cp -rp target/site/apidocs/* $RPM_BUILD_ROOT%{_javadocdir}/%{name}
-
-install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
-install -pm 644 pom.xml  \
-        $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}.pom
-
-%add_maven_depmap JPP-%{name}.pom %{name}.jar
+%setup -q -n jnr-enxio-jnr-enxio-%{version}
+# Publishing to Central is not part of the package build.
+# bnd's wildcard import reads a bundle version from every jar, and ASM has none.
+python - <<'PY'
+import re
+from pathlib import Path
+path = Path("pom.xml")
+text = path.read_text()
+text = re.sub(
+	r"\s*<plugin>\s*<groupId>org\.sonatype\.central</groupId>\s*<artifactId>central-publishing-maven-plugin</artifactId>.*?</plugin>",
+	"",
+	text,
+	count=1,
+	flags=re.S,
+)
+text = re.sub(
+	r"\s*<plugin>\s*<groupId>org\.apache\.felix</groupId>\s*<artifactId>maven-bundle-plugin</artifactId>.*?</plugin>",
+	"",
+	text,
+	count=1,
+	flags=re.S,
+)
+text = re.sub(r"\s*<manifestFile>.*?</manifestFile>", "", text, count=1, flags=re.S)
+# jnr-parent configures surefire with a JDK toolchain that is not installed.
+plugin = """      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration combine.self="override"/>
+      </plugin>
+"""
+marker = "</plugins>"
+text = text[:text.rfind(marker)] + plugin + text[text.rfind(marker):]
+path.write_text(text)
+PY
 
 %files -f .mfiles
-%doc LICENSE
-
-%files javadoc
-%doc LICENSE
-%{_javadocdir}/%{name}
-
-%changelog
-* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.3-4
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
-
-* Fri Feb 08 2013 Bohuslav Kabrda <bkabrda@redhat.com> - 0.3-3
-- Document the multiple licensing scenario.
-
-* Fri Feb 08 2013 Bohuslav Kabrda <bkabrda@redhat.com> - 0.3-2
-- The license is in fact ASL 2.0 and LGPLv3.
-- Properly use the dist tag.
-
-* Wed Feb 06 2013 Bohuslav Kabrda <bkabrda@redhat.com> - 0.3-1
-- Initial package.
+%doc LICENSE README.md
