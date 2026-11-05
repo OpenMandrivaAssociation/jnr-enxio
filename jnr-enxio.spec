@@ -12,6 +12,9 @@ BuildRequires:	python
 # Literal, so the first rpmbuild -bs records them before sysjar is installed.
 BuildRequires:	maven
 BuildRequires:	java-current-devel
+BuildRequires:	jnr-parent
+BuildRequires:	jnr-constants
+BuildRequires:	jnr-ffi
 BuildSystem:	maven
 
 %description
@@ -41,14 +44,26 @@ text = re.sub(
 	flags=re.S,
 )
 text = re.sub(r"\s*<manifestFile>.*?</manifestFile>", "", text, count=1, flags=re.S)
-# jnr-parent configures surefire with a JDK toolchain that is not installed.
-plugin = """      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration combine.self="override"/>
-      </plugin>
-"""
-marker = "</plugins>"
-text = text[:text.rfind(marker)] + plugin + text[text.rfind(marker):]
+text = text.replace(
+	"<artifactId>maven-jar-plugin</artifactId>",
+	"<artifactId>maven-jar-plugin</artifactId>\n        <version>3.3.0</version>",
+	1,
+)
+# pluginManagement is what a child inherits. An empty configuration
+# replaces jnr-parent's JDK toolchain, which runs even when tests are skipped.
+text = text.replace(
+	"<build>",
+	"""<build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration combine.self="override"/>
+        </plugin>
+      </plugins>
+    </pluginManagement>""",
+	1,
+)
 path.write_text(text)
 PY
 
